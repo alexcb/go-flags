@@ -439,6 +439,10 @@ func (option *Option) isValueValidator() ValueValidator {
 	return nil
 }
 
+func (option *Option) IsBool() bool {
+	return option.isBool()
+}
+
 func (option *Option) isBool() bool {
 	tp := option.value.Type()
 

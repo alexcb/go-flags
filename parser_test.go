@@ -760,3 +760,71 @@ func TestAllowBoolValues(t *testing.T) {
 		}
 	}
 }
+
+func TestAllowBoolValuesWithArgModifier(t *testing.T) {
+	var tests = []struct {
+		msg         string
+		args        []string
+		expectedErr string
+		expected    bool
+	}{
+		{
+			msg:      "true",
+			args:     []string{"-v"},
+			expected: true,
+		},
+		{
+			msg:      "true value",
+			args:     []string{"-v=true"},
+			expected: true,
+		},
+		{
+			msg:      "maybe value",
+			args:     []string{"-v=maybe"},
+			expected: true,
+		},
+		{
+			msg:      "false value",
+			args:     []string{"-v=false"},
+			expected: false,
+		},
+		{
+			msg:         "bad value",
+			args:        []string{"-v=badvalue"},
+			expectedErr: `parsing "badvalue": invalid syntax`,
+		},
+	}
+
+	for _, test := range tests {
+		var opts = struct {
+			Value bool `short:"v"`
+		}{}
+		parser := NewParser(&opts, AllowBoolValues)
+		parser.ArgumentMod = func(name string, opt *Option, val *string) *string {
+			if val == nil {
+				return nil
+			}
+			if *val == "maybe" {
+				newVal := "true"
+				return &newVal
+			}
+			return val
+		}
+		_, err := parser.ParseArgs(test.args)
+
+		if test.expectedErr == "" {
+			if err != nil {
+				t.Fatalf("%s:\nUnexpected parse error: %s", test.msg, err)
+			}
+			if opts.Value != test.expected {
+				t.Errorf("%s:\nExpected %v; got %v", test.msg, test.expected, opts.Value)
+			}
+		} else {
+			if err == nil {
+				t.Errorf("%s:\nExpected error containing substring %q", test.msg, test.expectedErr)
+			} else if !strings.Contains(err.Error(), test.expectedErr) {
+				t.Errorf("%s:\nExpected error %q to contain substring %q", test.msg, err, test.expectedErr)
+			}
+		}
+	}
+}

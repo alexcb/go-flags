@@ -56,6 +56,9 @@ type Parser struct {
 	// command to be executed when parsing has finished.
 	CommandHandler func(command Commander, args []string) error
 
+	// ArgumentMod allows the argument value to be modified before being parsed
+	ArgumentMod func(name string, option *Option, val *string) *string
+
 	internalError error
 }
 
@@ -524,6 +527,9 @@ func (p *parseState) estimateCommand() error {
 }
 
 func (p *Parser) parseOption(s *parseState, name string, option *Option, canarg bool, argument *string) (err error) {
+	if p.ArgumentMod != nil {
+		argument = p.ArgumentMod(name, option, argument)
+	}
 	if !option.canArgument() {
 		if argument != nil && (p.Options&AllowBoolValues) == None {
 			return newErrorf(ErrNoArgumentForBool, "bool flag `%s' cannot have an argument", option)
